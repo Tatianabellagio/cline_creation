@@ -3,6 +3,12 @@
 logs/
 *.log
 
+# Folders #
+##########
+lfmm/
+results/
+sbatch_scripts/
+
 # Python #
 ##########
 __pycache__/

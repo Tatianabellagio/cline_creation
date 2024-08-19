@@ -1,0 +1,442 @@
+// Author: Tati
+// simulate an environmental cline 
+
+initialize() {
+	//setSeed(1455193095666); // Uncomment this line if you want reproducible results
+	// Constants
+	
+	// not being used rn
+	defineConstant('activeRegionLength', 50);
+	defineConstant('activeRegionCount', 10);
+	defineConstant('QTL_mu', 0);
+	defineConstant('QTL_sigma', 5);
+	defineConstant('h2', 0.7); // Heritability
+
+
+	if (!exists("og_path"))defineConstant('og_path', "/home/tbellagio/simulations/cline_creation/results/"); // where output will be stored 
+
+
+	// chromosomes and snp number
+	defineConstant("L", 500000);
+	defineConstant('numChromosomes', 5);
+	
+	defineConstant('mutrate', 1e-6);
+	
+	// demography 
+	defineConstant('capacity_charge', 500);
+	defineConstant('initial_pop_size', 1000);
+	// Define migration between adjacent subpopulations
+	if (!exists("migration_rate"))defineConstant('migration_rate', 0.5); // final selection strength 
+
+	
+	
+	defineConstant('BURNIN_1', 0); // Burn-in period 1
+	defineConstant('BURNIN_2', 50); // Burn-in period 2 (transition) var of original env will start the shrink
+	if (!exists("last_gen"))defineConstant('last_gen', 100); // final selection strength 
+
+
+	defineConstant('initial_sel_strength', 10); // orgiinal strength of selection 
+	if (!exists("final_sel_strength"))defineConstant('final_sel_strength', 0.5); // final selection strength 
+
+
+	// optima_vector = rep(seq(11, 30, by=0.5), each=4);
+	// optima_vector = seq(11, 31.5, by=0.5);
+	defineConstant('subpop_number', 17);
+    optima_vector = seq(-2, 2, by = 0.25);
+    //optima_vector = rep(5, 5);
+	defineConstant('optima_final',optima_vector);
+	
+	initializeSLiMModelType("nonWF");
+	
+	// Mutation and genome initialization
+	initializeMutationType("m1", 0.5, "f", 0.0); // Mutations with effects
+	m1.convertToSubstitution = F;
+	initializeMutationType("m2", 0.5, "f", 0.0); // Mutations with effects
+	m1.convertToSubstitution = F;
+	
+	// so that they replace each other 
+	c(m1, m2).mutationStackGroup = 1;
+	c(m1, m2).mutationStackPolicy = 'l';
+	
+	initializeGenomicElementType("g1", c(m1,m2), c(0.5,0.5)); // Active regions
+	
+	// Define genomic elements with active and inactive regions
+	//for (index in 1:activeRegionCount) {
+	//	start = (index - 1) * 5000 + 1;
+	//	end = start + activeRegionLength - 1;
+	//	initializeGenomicElement(g1, start, end);
+	//}
+	
+	initializeGenomicElement(g1, 15004, 15005);
+	
+	// Mutation rates
+	mutrates = rep(c(0, mutrate, 0), 1);
+	dist_mutrates = c(15004, 15005, L);
+	initializeMutationRate(mutrates, dist_mutrates);
+	
+	// Recombination rates
+	// Calculate the length of each chromosome
+	chromosome_length = L / numChromosomes;
+	
+	// Initialize the rates and ends vectors
+	rates = c();
+	ends = c();
+	
+	// Define the rates and ends for each chromosome
+	for (i in 1:numChromosomes) {
+		start_pos = (i - 1) * chromosome_length;
+		end_pos = i * chromosome_length+1 ;
+		
+		// Recombination rate inside the chromosome
+		rates = c(rates, 3e-6);
+		ends = c(ends, asInteger(end_pos - 1));  // Ensure it's an integer
+		
+		// Full recombination rate between chromosomes, except after the last one
+		if (i < numChromosomes) {
+			rates = c(rates, 0.5);
+			ends = c(ends, asInteger(end_pos));  // Ensure it's an integer
+		}
+	}
+	initializeRecombinationRate(rates, ends);
+	initializeTreeSeq(retainCoalescentOnly=F);
+
+}
+
+1 first() {
+	sim.addSubpop("p0", initial_pop_size);
+	
+	target = p0.genomes[0];
+	
+	// Create and define MUT1
+	target.addNewDrawnMutation(m1, 15005);
+	target.mutations.setValue("e1", 1);
+	defineConstant("MUT1", target.mutations);
+	//target.removeMutations();
+	
+	// Create and define MUT2
+	target.addNewDrawnMutation(m2, 15005);
+	target.mutations.setValue("e1", -1);
+	defineConstant("MUT2", target.mutations);
+	//target.removeMutations();
+	
+	// Get the total number of genomes
+	totalGenomes = size(p0.genomes);
+	
+	// Calculate the number of individuals
+	numIndividuals = totalGenomes / 2;
+	
+	// Assign mutations based on Hardy-Weinberg equilibrium frequencies
+	num_Homozygous_MUT1 = asInteger(numIndividuals * 0.25);
+	num_Heterozygous = asInteger(numIndividuals * 0.5);
+	num_Homozygous_MUT2 = asInteger(numIndividuals * 0.25);
+	
+	// Add MUT1 to genomes that will be homozygous for MUT1
+	for (i in 0:(num_Homozygous_MUT1 - 1)) {
+		p0.genomes[2*i].addMutations(MUT1);
+		p0.genomes[2*i + 1].addMutations(MUT1);
+	}
+	
+	// Add MUT1 and MUT2 to genomes that will be heterozygous
+	for (i in num_Homozygous_MUT1:(num_Homozygous_MUT1 + num_Heterozygous - 1)) {
+		p0.genomes[2*i].addMutations(MUT1);
+		p0.genomes[2*i + 1].addMutations(MUT2);
+	}
+	
+	// Add MUT2 to genomes that will be homozygous for MUT2
+	for (i in (num_Homozygous_MUT1 + num_Heterozygous):(numIndividuals - 1)) {
+		p0.genomes[2*i].addMutations(MUT2);
+		p0.genomes[2*i + 1].addMutations(MUT2);
+	}
+
+
+}
+
+
+1 first() {
+	//if (sim.cycle == BURNIN_1) {
+	// Create new subpopulations with size 0
+	for (i in 1:subpop_number) {
+		sim.addSubpop("p" + i, 0);
+	}
+	
+	// Calculate number of individuals to migrate
+	print(p0.individualCount);
+	numMigrants = asInteger(p0.individualCount / subpop_number);
+	
+	// Move individuals to the new subpopulations
+	for (i in 1:subpop_number) {
+		subpop = sim.subpopulations[i];
+		subpop.takeMigrants(p0.sampleIndividuals(numMigrants));
+		print(subpop.individualCount);
+	}
+	
+	// Remove the initial subpopulation
+	p0.removeSubpopulation();
+	//}
+}
+
+// set up migration
+function (void) migration(void) {
+	
+	// Define a callback for each generation to manage migration
+	for (i in 0:(subpop_number-2)) {
+
+		subpop1 = sim.subpopulations[i];
+		subpop2 = sim.subpopulations[i + 1];
+		//print('migration in between ' + i + ' and ' + (i + 1));
+		//print(subpop1);
+		//print(subpop2);
+		
+		// Migrate a fraction of individuals from subpop1 to subpop2
+		migrants1to2 = subpop1.sampleIndividuals(asInteger(subpop1.individualCount * migration_rate));
+		subpop2.takeMigrants(migrants1to2);
+		//print(size(migrants1to2));
+		
+		// Migrate a fraction of individuals from subpop2 to subpop1
+		migrants2to1 = subpop2.sampleIndividuals(asInteger(subpop2.individualCount * migration_rate));
+		subpop1.takeMigrants(migrants2to1);
+		//print(size(migrants2to1));
+	}
+}
+
+// Mutation function for type m1
+mutation(m1) {
+	//effect = 1;
+	// Set the effect of the mutation
+	//mut.setValue("e1", effect);
+	return MUT1[0];  // Ensure the mutation is accepted
+}
+
+mutation(m2) {
+	//effect = -1;
+	// Set the effect of the mutation
+	//mut.setValue("e1", effect);
+	return MUT2[0];   // Ensure the mutation is accepted
+}
+
+function (void) calculateFitness(void) {
+	//print(sim.cycle);
+	
+	if (sim.cycle < BURNIN_2) {
+		progress = (sim.cycle - BURNIN_1) / (BURNIN_2 - BURNIN_1);
+		optima = optima_final * progress;
+		fitness_var = final_sel_strength * progress + initial_sel_strength * (1.0 - progress);
+	} else {
+		optima = optima_final;
+		fitness_var = final_sel_strength;
+	}
+	
+	for (i in 1:subpop_number) {
+		
+		subpop = sim.subpopulations[i - 1];
+		//print(subpop);
+		if (subpop.individualCount > 0) {
+			opt = optima[i - 1];
+			subpop.setValue("scaled_opt", opt);
+			fitness_norm = dnorm(0.0, 0.0, fitness_var);
+			subpop.setValue("fitness_norm", fitness_norm);
+			
+			for (ind in subpop.individuals) {
+				// Get mutations of type m1
+				muts_m1 = ind.genomes.mutationsOfType(m1);
+				
+				// Get mutations of type m2
+				muts_m2 = ind.genomes.mutationsOfType(m2);
+				
+				// Calculate the phenotype based on the sum of effects from both mutation types
+				pheno_m1 = size(muts_m1) ? sum(muts_m1.getValue("e1")) else 0.0;
+				pheno_m2 = size(muts_m2) ? sum(muts_m2.getValue("e1")) else 0.0;
+				
+				// Combine the effects to calculate the overall phenotype
+				pheno = pheno_m1 + pheno_m2;
+				
+				// Set the phenotype for the individual
+				ind.setValue("phenotype", pheno);
+			}
+			
+			inds = subpop.individuals;
+			fits = dnorm(asFloat(inds.getValue("phenotype")), asFloat(opt), fitness_var) / fitness_norm;
+			inds.fitnessScaling = fits;
+			
+			for (j in seqAlong(inds)) {
+				inds[j].setValue("fitness", fits[j]);
+			}
+		}
+	}
+}
+
+
+2: early() {
+	calculateFitness();
+	migration();
+}
+
+
+
+2: reproduction() {
+	for (subpopulation in sim.subpopulations) {
+		if (subpopulation.individualCount > 0) {
+			for (ind in subpopulation.individuals) {
+				offspring = rpois(1, 7.247);
+				for (i in 1:offspring) {
+					if (runif(1) < 0.97) {
+						subpopulation.addSelfed(ind);
+					} else {
+						mate = subpopulation.sampleIndividuals(1);
+						subpopulation.addCrossed(ind, mate);
+					}
+				}
+			}
+		}
+	}
+	self.active = 0;
+}
+
+
+2: late() {
+	for (subpop in sim.subpopulations) {
+		if (subpop.individualCount > capacity_charge) {
+			number_to_kill = subpop.individualCount - capacity_charge;
+			inds_to_kill = subpop.sampleIndividuals(number_to_kill);
+			sim.killIndividuals(inds_to_kill);
+			//sim.outputMutations(sim.mutationsOfType(m1));
+		
+		}
+	}
+}
+
+
+1: late() {
+	if (sim.cycle % 10 == 0) {
+		catn("Cycle: " + sim.cycle);
+		
+		// Get subpopulations
+		mySubpops = sim.subpopulations;
+		
+		// Loop over each subpopulation
+		for (subpop in mySubpops) {
+			catn("\n");
+			catn("Subpopulation ID " + subpop.id);
+			
+			// Get mutations of type m1
+			muts_m1 = subpop.individuals.genomes.mutationsOfType(m1);
+			
+			// Get mutations of type m2
+			muts_m2 = subpop.individuals.genomes.mutationsOfType(m2);
+			
+			
+			// Calculate and print counts and frequencies for m1
+			//counts_m1 = sim.mutationCounts(subpop, sim.mutationsOfType(m1));
+			freq_m1 = sim.mutationFrequencies(subpop, sim.mutationsOfType(m1));
+			freq_m2 = sim.mutationFrequencies(subpop, sim.mutationsOfType(m2));
+			//catn("m1 counts: " + mean(counts_m1));
+			catn("m1 frequencies: " + mean(freq_m1));
+			catn("m2 frequencies: " + mean(freq_m2));
+			
+			
+			// Calculate the phenotype based on the sum of effects from both mutation types
+			pheno_m1 = size(muts_m1) ? sum(muts_m1.getValue("e1")) else 0.0;
+			pheno_m2 = size(muts_m2) ? sum(muts_m2.getValue("e1")) else 0.0;
+			
+			// Combine the effects to calculate the overall phenotype
+			phenos = pheno_m1 + pheno_m2;
+			
+			print(phenos/subpop.individualCount);
+		}
+	}
+}
+
+1: late() {
+	if (sim.cycle == last_gen) {
+	print('hola');
+	
+	// Generate a random number for unique file names
+	randomNumber = asInteger(runif(1, 100000, 999999)[0]);
+	print(randomNumber);
+	
+	file_phenos = og_path+ randomNumber + "_output_phenotypes.txt";
+	file_muts = og_path + randomNumber + "_output_mutations.txt";
+	
+	// Iterate over all individuals in all subpopulations
+	for (subpop in sim.subpopulations) {
+		for (ind in subpop.individuals) {
+			// Output the phenotypes of the individuals
+			// Get mutations of type m1
+			muts_m1 = ind.genomes.mutationsOfType(m1);
+			
+			// Get mutations of type m2
+			muts_m2 = ind.genomes.mutationsOfType(m2);
+			
+			// Calculate the phenotype based on the sum of effects from both mutation types
+			pheno_m1 = size(muts_m1) ? sum(muts_m1.getValue("e1")) else 0.0;
+			pheno_m2 = size(muts_m2) ? sum(muts_m2.getValue("e1")) else 0.0;
+			
+			// Combine the effects to calculate the overall phenotype
+			pheno = pheno_m1 + pheno_m2;
+			
+			// Set the phenotype for the individual
+			ind.setValue("phenotype", pheno);
+			fit = ind.getValue("fitness");
+			content_pheno = ind.index + "\t" + subpop.id + "\t" + pheno + "\t" + fit + "\n";
+			
+			writeFile(file_phenos, content_pheno, append = T);
+			
+			//for (mut in muts) {
+			//	effect = mut.getValue("e1");
+			//	content_muts = mut.id + "\t" + effect + "\n";
+			//	writeFile(file_muts, content_muts, append = T);
+			//}
+		}
+	}
+	
+	// Output mutations and tree sequence
+	sim.outputMutations(sim.mutationsOfType(m1), filePath=og_path + randomNumber + "_mutations.txt", append = F);
+	sim.treeSeqOutput(og_path + randomNumber + "_tree_final.trees");
+
+    // output a file indicating the id and the parameters used 
+    dict_params_file = og_path + 'run_' + randomNumber + '.txt';
+    content = final_sel_strength + '_' + migration_rate + '_' + last_gen;
+    writeFile(dict_params_file, content);
+
+	// End the simulation
+	sim.simulationFinished();
+}
+}
+
+1000 late(){}
+//}
+
+/*
+
+    output_mutations = "#OUT: " + sim.cycle + " " + sim.cycle + " T " + self.id +
+             " " + self.id + " " + self.mutationType + " " + self.position + " " +
+             self.selectionCoeff + " " + self.dominanceCoeff + " " + self.subpopID + " " +
+             self.tick + " " + size(self.genomes) + " " + self.getValue("e1");
+    
+        subpop = sim.subpopulations[i - 1];
+        opt = optima[i - 1];
+        subpop.setValue("scaled_opt", opt);
+        fitness_norm = dnorm(0.0, 0.0, fitness_var);
+        subpop.setValue("fitness_norm", fitness_norm);
+
+        for (ind in subpop.individuals) {
+            muts = ind.genomes.mutationsOfType(m1);
+            pheno = size(muts) ? sum(muts.getValue("e1")
+    writeFile('output_mutations.txt', append = F);
+    
+    	 subpop = sim.subpopulations[i - 1];
+	 for (ind in subpop.individuals) {
+	 muts = ind.genomes.mutationsOfType(m1);
+	 
+	 for (ind in sim.subpopulations.individuals)
+	{
+		for (mut in ind.genomes.mutationsOfType(m1))
+		{
+			effect = mut.getValue("e1");
+			print(id);
+			print(effect);
+			print(mut.position);
+			print(mut.subpopID)
+		
+		}
+		})
