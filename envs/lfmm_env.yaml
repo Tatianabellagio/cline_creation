@@ -10,3 +10,6 @@ dependencies:
   - r-dplyr=1.1.4
   - r-devtools=2.4.5
   - bioconductor-qvalue=2.34.0
+  - r-rspectra=0.16.1
+  - r-rcpp=1.0.13
+  - r-rcppeigen=0.3.4.0.1
