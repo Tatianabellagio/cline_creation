@@ -1,0 +1,25 @@
+parameters:
+  - repr_scheme: 1
+    mutrate: 1e-8
+    capacity_charge: 0.1
+    initial_pop_size: 1000
+    subpop_number: 5
+    migration_rate: 0.01
+    BURNIN_1: 1000
+    BURNIN_2: 2000
+    last_gen: 10000
+    final_sel_strength: 0.1
+    active_loci: 50
+    h2: 0.5
+  - repr_scheme: 2
+    mutrate: 1e-9
+    capacity_charge: 0.2
+    initial_pop_size: 2000
+    subpop_number: 10
+    migration_rate: 0.05
+    BURNIN_1: 2000
+    BURNIN_2: 4000
+    last_gen: 20000
+    final_sel_strength: 0.2
+    active_loci: 100
+    h2: 0.6
