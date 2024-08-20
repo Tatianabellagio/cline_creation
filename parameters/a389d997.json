@@ -1,0 +1,17 @@
+{
+    "causal_loci": 20,
+    "repr_scheme": "selfing",
+    "mutrate": 1e-06,
+    "recomb_rate": 3e-06,
+    "h2": 1,
+    "capacity_charge": 500,
+    "initial_pop_size": 1000,
+    "subpop_number": 17,
+    "migration_rate": 0.01,
+    "BURNIN_1": 0,
+    "BURNIN_2": 50,
+    "last_gen": 50,
+    "initial_sel_strength": 10,
+    "final_sel_strength": 0.5,
+    "initial_ne": 500
+}
