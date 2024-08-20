@@ -18,6 +18,6 @@ dependencies:
     - scikit-learn==1.2.2
     - seaborn==0.12.2
     - matplotlib==3.7.1
-    - tskit==0.5.5
+    - tskit==0.5.8
     - tsinfer==0.3.1
     - pyslim==1.0.4
