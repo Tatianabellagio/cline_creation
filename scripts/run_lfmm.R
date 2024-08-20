@@ -1,6 +1,16 @@
+
+
+# Check if the package is already installed
+if (!requireNamespace("lfmm", quietly = TRUE)) {
+  # If the package is not installed, install it
+  library(devtools)
+  devtools::install_github("bcm-uga/lfmm")
+}
+
 library("lfmm")
 library("dplyr")
 library("qvalue")
+
 
 
 # Access the inputs and outputs via snakemake

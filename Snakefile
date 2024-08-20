@@ -47,6 +47,8 @@ rule def_causal_loci:
         mem_mb=30720,
     benchmark:
         "benchmarks/def_causal_loci/causal_loci_{hash}.txt"
+    conda:
+        "envs/base_env.yaml"
     script:
         "scripts/def_causal_loci.py"
 
@@ -63,6 +65,8 @@ rule run_simulations:
         mem_mb=30720,
     benchmark:
         "benchmarks/run_simulations/sim_{hash}.txt"
+    conda:
+        "envs/base_env.yaml"
     script:
         "scripts/run_slim.sh"
 
@@ -80,6 +84,8 @@ rule process_trees:
         mem_mb=30720,
     benchmark:
         "benchmarks/process_trees/process_trees_{hash}.txt"
+    conda:
+        "envs/base_env.yaml"
     script:
         "scripts/process_tree.py"
 
@@ -102,6 +108,8 @@ rule gen_alleles_df:
         mem_mb=30720,
     benchmark:
         "benchmarks/gen_alleles_df/gen_alleles_df_{hash}.txt"
+    conda:
+        "envs/base_env.yaml"
     script:
         "scripts/gen_alleles_df.py"
 
@@ -123,6 +131,8 @@ rule fst_calculation:
         mem_mb=30720,
     benchmark:
         "benchmarks/fst_calculation/fst_calculation_{hash}.txt"
+    conda:
+        "envs/base_env.yaml"
     script:
         "scripts/fst_calc.py"
 
@@ -141,6 +151,8 @@ rule clines:
         mem_mb=30720,
     benchmark:
         "benchmarks/clines/clines_calc_{hash}.txt"
+    conda:
+        "envs/base_env.yaml"
     script:
         "scripts/clines_calc.py"
 
@@ -156,6 +168,8 @@ rule run_lfmm:
         mem_mb=30720,
     benchmark:
         "benchmarks/run_lfmm/run_lfmm_{hash}.txt"
+    conda:
+        "envs/lfmm_env.yaml"
     script:
         "scripts/run_lfmm.R"
 
@@ -173,6 +187,8 @@ rule manhattan_lfmm:
         mem_mb=30720,
     benchmark:
         "benchmarks/manhattan_lfmm/manhattan_lfmm_{hash}.txt"
+    conda:
+        "envs/base_env.yaml"
     script:
         "scripts/manhattan_lfmm.py"
 
