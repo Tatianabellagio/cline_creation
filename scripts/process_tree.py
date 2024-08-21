@@ -18,6 +18,7 @@ hash = snakemake.params['hash']
 #outputs
 vcf_file = snakemake.output["vcf_file"]
 population_counts_file = snakemake.output["population_counts_file"]
+genetic_diversity_file = snakemake.output["genetic_diversity_file"]
 
 # read the causal loci 
 causal_loci = pd.read_csv(causal_loci_file,header=None)[0].values
@@ -171,6 +172,12 @@ tables.sites.replace_with(new_sites_table)
 # Now you can save the modified tree sequence
 nts = tables.tree_sequence()
 
+## calculate diversity and save it 
+genetic_diversity = nts.diversity()
+
+with open(genetic_diversity_file, 'w') as file:
+    file.write(str(genetic_diversity))
+
 # Write the filtered tree sequence to a VCF file
 with open(vcf_file, 'w') as file:
     # Pass the file object as the output parameter
@@ -187,5 +194,3 @@ for ind in nts.individuals():
 # Save the dictionary as a pickle file
 with open(population_counts_file, 'wb') as file:
     pickle.dump(population_counts, file)
-
-total_pop_size = sum(population_counts.values())

@@ -10,17 +10,23 @@ population_counts_file = snakemake.input['population_counts_file']
 hash = snakemake.params['hash']
 
 #outputs
+input_snp_number_file = snakemake.output["input_snp_number_file"]
 allele_counts_df_file = snakemake.output["allele_counts_df"]
 allele_freq_df_file = snakemake.output["allele_freq_df"]
 allele_counts_lfmm = snakemake.output["allele_counts_lfmm"]
 env_var_lfmm = snakemake.output["env_var_lfmm"]
 left_pos_lfmm = snakemake.output["left_pos_lfmm"]
 
+
+
+
 vcf = allel.read_vcf(vcf_file)
 samples = vcf['samples']
 geno_array = vcf['calldata/GT']
 pos = vcf['variants/POS']
 chrom = vcf['variants/CHROM']
+
+initial_allele_numb = len(pos)
 
 mask = np.any(geno_array == 2, axis=(1, 2))
 # Invert the mask to select the entries that do NOT have a '2'
@@ -29,6 +35,7 @@ inverted_mask = ~mask
 geno_array = geno_array[inverted_mask]
 pos = pos[inverted_mask]
 
+allele_numb_nomultiple_derived_alleles = len(pos)
 
 with open(population_counts_file, 'rb') as f:
     population_counts = pickle.load(f)
@@ -98,6 +105,14 @@ min_count = total_genomes * min_freq
 
 print(all_alt_allele_count.shape)
 all_alt_allele_count = all_alt_allele_count[all_alt_allele_count.sum(axis=1) > min_count]
+
+allele_numb_after_filt = len(all_alt_allele_count)
+
+with open(input_snp_number_file, 'w') as file:
+    file.write(f"{initial_allele_numb}\n")
+    file.write(f"{allele_numb_nomultiple_derived_alleles}\n")
+    file.write(f"{allele_numb_after_filt}\n")
+
 all_alt_allele_count.to_csv(allele_counts_lfmm, index=None)
 
 # read teh sequence of envrionemnts 

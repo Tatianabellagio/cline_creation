@@ -83,6 +83,7 @@ rule process_trees:
     output:
         vcf_file="results/vcfs/vcf_{hash}_{stage}.vcf",
         population_counts_file="results/population_counts/population_counts_{hash}_{stage}.pkl",
+        genetic_diversity_file="results/genetic_diversity/genetic_diversity_{hash}_{stage}.txt",
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
@@ -101,6 +102,7 @@ rule gen_alleles_df:
         vcf_file="results/vcfs/vcf_{hash}_{stage}.vcf",
         population_counts_file="results/population_counts/population_counts_{hash}_{stage}.pkl",
     output:
+        input_snp_number_file="results/input_snp_number/input_snp_number_{hash}_{stage}.txt",
         allele_counts_df="results/alleles_df/allele_counts_{hash}_{stage}.csv",
         allele_freq_df="results/alleles_df/allele_freq_{hash}_{stage}.csv",
         allele_counts_lfmm="results/lfmm/allele_counts_lfmm_{hash}_{stage}.csv",
@@ -167,6 +169,7 @@ rule run_lfmm:
         env_var_lfmm="results/lfmm/env_vars/env_var_{hash}_{stage}.csv",
     output:
         lfmm_pvalues="results/lfmm/pvalues/pvalues_{hash}_{stage}.csv",
+        k_value_file="results/lfmm/k_value/k_value_{hash}_{stage}.txt",
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
