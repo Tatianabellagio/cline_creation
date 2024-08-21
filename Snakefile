@@ -25,10 +25,22 @@ stages = ["bcg", "acg"]
 rule all:
     input:
         expand(
-            "results/vcfs/vcf_{hash}_{stage}.vcf",
+            "results/fst/fst_per_pos_{hash}_{stage}.csv",
             hash=open('all_hashes.txt').read().strip().split('\n'),
             stage=stages
         ),
+        expand(
+            "results/clines/clines_df_{hash}_{stage}.csv",
+            hash=open('all_hashes.txt').read().strip().split('\n'),
+            stage=stages
+        ),
+        expand(
+            "results/lfmm/manhattan/manhattan_{hash}_{stage}.png",
+            hash=open('all_hashes.txt').read().strip().split('\n'),
+            stage=stages
+        ),
+
+
 
 rule def_causal_loci:
     input:
@@ -43,8 +55,6 @@ rule def_causal_loci:
         "envs/base_env.yaml"
     script:
         "scripts/def_causal_loci.py"
-
-
 
 rule run_simulations:
     input:
@@ -88,21 +98,21 @@ rule process_trees:
 rule gen_alleles_df:
     input:
         parameter_space=lambda wildcards: f"parameters/{wildcards.hash}.json",
-        vcf_file="results/vcfs/vcf_{hash}.vcf",
-        population_counts_file="results/population_counts/population_counts_{hash}.pkl",
+        vcf_file="results/vcfs/vcf_{hash}_{stage}.vcf",
+        population_counts_file="results/population_counts/population_counts_{hash}_{stage}.pkl",
     output:
-        allele_counts_df="results/alleles_df/allele_counts_{hash}.csv",
-        allele_freq_df="results/alleles_df/allele_freq_{hash}.csv",
-        allele_counts_lfmm="results/lfmm/allele_counts_lfmm_{hash}.csv",
-        env_var_lfmm="results/lfmm/env_vars/env_var_{hash}.csv",
-        left_pos_lfmm="results/lfmm/left_pos/left_pos_{hash}.csv"
+        allele_counts_df="results/alleles_df/allele_counts_{hash}_{stage}.csv",
+        allele_freq_df="results/alleles_df/allele_freq_{hash}_{stage}.csv",
+        allele_counts_lfmm="results/lfmm/allele_counts_lfmm_{hash}_{stage}.csv",
+        env_var_lfmm="results/lfmm/env_vars/env_var_{hash}_{stage}.csv",
+        left_pos_lfmm="results/lfmm/left_pos/left_pos_{hash}_{stage}.csv"
 
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
         mem_mb=30720,
     benchmark:
-        "benchmarks/gen_alleles_df/gen_alleles_df_{hash}.txt"
+        "benchmarks/gen_alleles_df/gen_alleles_df_{hash}_{stage}.txt"
     conda:
         "envs/base_env.yaml"
     script:
@@ -111,21 +121,21 @@ rule gen_alleles_df:
 rule fst_calculation:
     input:
         parameter_space=lambda wildcards: f"parameters/{wildcards.hash}.json",
-        vcf_file="results/vcfs/vcf_{hash}.vcf",
-        population_counts_file="results/population_counts/population_counts_{hash}.pkl",
+        vcf_file="results/vcfs/vcf_{hash}_{stage}.vcf",
+        population_counts_file="results/population_counts/population_counts_{hash}_{stage}.pkl",
         causal_loci_file="results/causal_loci/causal_loci_{hash}.txt",
     output:
-        mean_fst_file="results/fst/mean_fst_{hash}.txt",
-        fst_per_pos="results/fst/fst_per_pos_{hash}.csv",
-        fst_manhattan="results/fst/fst_manhattan_{hash}.png",
-        fst_across_pops="results/fst/fst_across_pops_{hash}.csv",
-        fst_heatmap="results/fst/fst_heatmap_{hash}.png",
+        mean_fst_file="results/fst/mean_fst_{hash}_{stage}.txt",
+        fst_per_pos="results/fst/fst_per_pos_{hash}_{stage}.csv",
+        fst_manhattan="results/fst/fst_manhattan_{hash}_{stage}.png",
+        fst_across_pops="results/fst/fst_across_pops_{hash}_{stage}.csv",
+        fst_heatmap="results/fst/fst_heatmap_{hash}_{stage}.png",
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
         mem_mb=30720,
     benchmark:
-        "benchmarks/fst_calculation/fst_calculation_{hash}.txt"
+        "benchmarks/fst_calculation/fst_calculation_{hash}_{stage}.txt"
     conda:
         "envs/base_env.yaml"
     script:
@@ -134,18 +144,18 @@ rule fst_calculation:
 rule clines:
     input:
         parameter_space=lambda wildcards: f"parameters/{wildcards.hash}.json",
-        allele_freq_df_file="results/alleles_df/allele_freq_{hash}.csv",
-        allele_counts_df_file="results/alleles_df/allele_counts_{hash}.csv",
-        population_counts_file="results/population_counts/population_counts_{hash}.pkl",
+        allele_freq_df_file="results/alleles_df/allele_freq_{hash}_{stage}.csv",
+        allele_counts_df_file="results/alleles_df/allele_counts_{hash}_{stage}.csv",
+        population_counts_file="results/population_counts/population_counts_{hash}_{stage}.pkl",
         causal_loci_file="results/causal_loci/causal_loci_{hash}.txt",
     output:
-        cline_file="results/clines/clines_df_{hash}.csv",
+        cline_file="results/clines/clines_df_{hash}_{stage}.csv",
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
         mem_mb=30720,
     benchmark:
-        "benchmarks/clines/clines_calc_{hash}.txt"
+        "benchmarks/clines/clines_calc_{hash}_{stage}.txt"
     conda:
         "envs/base_env.yaml"
     script:
@@ -153,16 +163,16 @@ rule clines:
 
 rule run_lfmm:
     input:
-        allele_counts_lfmm="results/lfmm/allele_counts_lfmm_{hash}.csv",
-        env_var_lfmm="results/lfmm/env_vars/env_var_{hash}.csv",
+        allele_counts_lfmm="results/lfmm/allele_counts_lfmm_{hash}_{stage}.csv",
+        env_var_lfmm="results/lfmm/env_vars/env_var_{hash}_{stage}.csv",
     output:
-        lfmm_pvalues="results/lfmm/pvalues/pvalues_{hash}.csv",
+        lfmm_pvalues="results/lfmm/pvalues/pvalues_{hash}_{stage}.csv",
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
         mem_mb=30720,
     benchmark:
-        "benchmarks/run_lfmm/run_lfmm_{hash}.txt"
+        "benchmarks/run_lfmm/run_lfmm_{hash}_{stage}.txt"
     conda:
         "envs/lfmm_env.yaml"
     script:
@@ -170,18 +180,18 @@ rule run_lfmm:
 
 rule manhattan_lfmm:
     input:
-        lfmm_pvalues="results/lfmm/pvalues/pvalues_{hash}.csv",
-        left_pos_lfmm="results/lfmm/left_pos/left_pos_{hash}.csv",
+        lfmm_pvalues="results/lfmm/pvalues/pvalues_{hash}_{stage}.csv",
+        left_pos_lfmm="results/lfmm/left_pos/left_pos_{hash}_{stage}.csv",
         causal_loci_file="results/causal_loci/causal_loci_{hash}.txt",
     output:
-        lfmm_manhattan="results/lfmm/manhattan/manhattan_{hash}.png",
-        sign_pos_df="results/lfmm/sign_pos/sign_pos_{hash}.csv",
+        lfmm_manhattan="results/lfmm/manhattan/manhattan_{hash}_{stage}.png",
+        sign_pos_df="results/lfmm/sign_pos/sign_pos_{hash}_{stage}.csv",
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
         mem_mb=30720,
     benchmark:
-        "benchmarks/manhattan_lfmm/manhattan_lfmm_{hash}.txt"
+        "benchmarks/manhattan_lfmm/manhattan_lfmm_{hash}_{stage}.txt"
     conda:
         "envs/base_env.yaml"
     script:

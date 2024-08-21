@@ -129,7 +129,7 @@ initialize() {
 	}
 	
 	initializeRecombinationRate(rates, ends);
-	initializeTreeSeq(retainCoalescentOnly=T);
+	initializeTreeSeq(retainCoalescentOnly=F);
 
 }
 
@@ -426,13 +426,11 @@ function (void) calculateFitness(void) {
 		/// common garden fitnesss /////
 		print('common garden fitness started');
 		optima = optima_CG;
-		print(optima_CG);
+		//print(optima_CG);
 		fitness_var = sel_strength_CG;
 		print(sel_strength_CG);
 		for (i in 1:common_garden_number) {
-			print(i);
 			subpop = sim.subpopulations[i - 1];
-			print(subpop);
 			if (subpop.individualCount > 0) {
 				opt = optima[i - 1];
 				subpop.setValue("scaled_opt", opt);

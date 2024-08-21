@@ -9,8 +9,6 @@ vcf_file = snakemake.input['vcf_file']
 population_counts_file = snakemake.input['population_counts_file'] 
 hash = snakemake.params['hash']
 
-
-
 #outputs
 allele_counts_df_file = snakemake.output["allele_counts_df"]
 allele_freq_df_file = snakemake.output["allele_freq_df"]
@@ -103,12 +101,14 @@ all_alt_allele_count = all_alt_allele_count[all_alt_allele_count.sum(axis=1) > m
 all_alt_allele_count.to_csv(allele_counts_lfmm, index=None)
 
 # read teh sequence of envrionemnts 
-env_var = pd.read_csv('env_var.txt', header=None)[0]
+if 'acg' in vcf_file:
+    env_var = pd.read_csv('env_var_acg.txt', header=None)[0]
+elif 'bcg' in vcf_file:
+    env_var = pd.read_csv('env_var_bcg.txt', header=None)[0]
+
 # Create the dictionary
-pop_env = {f'pop{index+1}': value for index, value in enumerate(env_var)}
-
+pop_env = {key: value for key, value in zip(subpops.keys(), env_var)}
 env_var = pd.Series(list(all_alt_allele_count.columns.map(pop_env)))
-
 env_var.to_csv(env_var_lfmm,index=None, header=None)
 
 left_pos = all_alt_allele_count.index
