@@ -20,23 +20,15 @@
 
 
 configfile: "config.yaml"
+stages = ["bcg", "acg"]
 
 rule all:
     input:
         expand(
-            "results/alleles_df/allele_counts_{hash}.csv",
-            hash=open('all_hashes.txt').read().strip().split('\n')),
-         expand(
-            "results/fst/fst_heatmap_{hash}.png",
-            hash=open('all_hashes.txt').read().strip().split('\n')),
-        expand(
-            "results/clines/clines_df_{hash}.csv",
-            hash=open('all_hashes.txt').read().strip().split('\n')),
-        expand(
-            "results/lfmm/sign_pos/sign_pos_{hash}.csv",
-            hash=open('all_hashes.txt').read().strip().split('\n')),
-
-
+            "results/vcfs/vcf_{hash}_{stage}.vcf",
+            hash=open('all_hashes.txt').read().strip().split('\n'),
+            stage=stages
+        ),
 
 rule def_causal_loci:
     input:
@@ -52,13 +44,15 @@ rule def_causal_loci:
     script:
         "scripts/def_causal_loci.py"
 
+
+
 rule run_simulations:
     input:
         causal_loci="results/causal_loci/causal_loci_{hash}.txt",
         parameter_space=lambda wildcards: f"parameters/{wildcards.hash}.json",
     output:
-        tree_seq="results/tree_seq/tree_seq_{hash}.trees",
-        phenotypes="results/phenotypes/phenotypes_{hash}.txt",
+        expand("results/tree_seq/tree_seq_{{hash}}_{stage}.trees", stage=stages),
+        expand("results/phenotypes/phenotypes_{{hash}}_{stage}.txt", stage=stages),
         local_adaptation="results/local_adaptation/local_adapt_{hash}.txt",
     params:
         hash=lambda wildcards: wildcards.hash,
@@ -74,17 +68,17 @@ rule run_simulations:
 rule process_trees:
     input:
         parameter_space=lambda wildcards: f"parameters/{wildcards.hash}.json",
-        tree_seq_file="results/tree_seq/tree_seq_{hash}.trees",
+        tree_seq_file="results/tree_seq/tree_seq_{hash}_{stage}.trees",
         causal_loci_file="results/causal_loci/causal_loci_{hash}.txt",
     output:
-        vcf_file="results/vcfs/vcf_{hash}.vcf",
-        population_counts_file="results/population_counts/population_counts_{hash}.pkl",
+        vcf_file="results/vcfs/vcf_{hash}_{stage}.vcf",
+        population_counts_file="results/population_counts/population_counts_{hash}_{stage}.pkl",
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
         mem_mb=30720,
     benchmark:
-        "benchmarks/process_trees/process_trees_{hash}.txt"
+        "benchmarks/process_trees/process_trees_{hash}_{stage}.txt"
     conda:
         "envs/base_env.yaml"
     script:

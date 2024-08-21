@@ -29,6 +29,8 @@ initialize() {
 	if (!exists("capacity_charge"))defineConstant('capacity_charge', 500);
 	if (!exists("initial_pop_size"))defineConstant('initial_pop_size', 1000);
 	
+	
+	
 	// number of subpopulations and ergo optima vector 
 	if (!exists("optima_vector"))defineConstant('optima_vector', seq(-2, 2, by = 0.25));
 	
@@ -41,7 +43,17 @@ initialize() {
 	if (!exists("BURNIN_1"))defineConstant('BURNIN_1', 0);  // Burn-in period 1
 	// Burn-in period 2 (transition) var of original env will start the shrink
 	if (!exists("BURNIN_2"))defineConstant('BURNIN_2', 50); // final selection strength 
-	if (!exists("last_gen"))defineConstant('last_gen', 300); // final selection strength 
+	if (!exists("COMMON_GARDEN_CYCLE"))defineConstant('COMMON_GARDEN_CYCLE', 100);
+	if (!exists("common_garden_number"))defineConstant('common_garden_number', 17);
+	if (!exists("common_garden_migrants"))defineConstant('common_garden_migrants', 10);
+	
+	
+	if (!exists("optima_CG"))defineConstant('optima_CG', seq(-2, 2, by = 0.25));
+	if (!exists("sel_strength_CG"))defineConstant('sel_strength_CG', 0.5);
+	
+	if (!exists("last_gen_a_cg"))defineConstant('last_gen_a_cg', 103); // last gen of common garden 
+	
+	
 	
 	
 	if (!exists("initial_sel_strength"))defineConstant('initial_sel_strength', 10); // orgiinal strength of selection 
@@ -171,7 +183,6 @@ initialize() {
 		}
 	}
 	
-	
 	// calcualte environmental variance based on heritability
 	
 	for (ind in sim.subpopulations[0].individuals) {
@@ -206,7 +217,6 @@ initialize() {
 	
 	//sim.outputFull(og_path + hash_value +'_results_sim.txt');
 	
-	//if (sim.cycle == BURNIN_1) {
 	// Create new subpopulations with size 0
 	for (i in 1:subpop_number) {
 		sim.addSubpop("p" + i, 0);
@@ -227,7 +237,6 @@ initialize() {
 }
 
 // set up migration
-// Set up migration and track migration events
 function (void) migration(void) {
 	for (i in 0:(subpop_number - 2)) {
 		subpop1 = sim.subpopulations[i];
@@ -252,6 +261,7 @@ mutation(m1) {
 		}
 	}
 }
+
 // Mutation function for type m2
 mutation(m2) {
 	for (i in seqAlong(MUT2_LIST)) {
@@ -262,264 +272,317 @@ mutation(m2) {
 	}
 }
 
+//function to save data at teh end of the cline formation or the common garden 
+function (void) saveData(string file_suffix) {
+	file_phenos = 'results/phenotypes/phenotypes_' + hash_value + '_' + file_suffix + '.txt';
+	
+	for (subpop in sim.subpopulations) {
+		for (ind in subpop.individuals) {
+			muts_m1 = ind.genomes.mutationsOfType(m1);
+			muts_m2 = ind.genomes.mutationsOfType(m2);
+			
+			pheno_m1 = size(muts_m1) ? sum(muts_m1.getValue("e1")) else 0.0;
+			pheno_m2 = size(muts_m2) ? sum(muts_m2.getValue("e1")) else 0.0;
+			
+			pheno = pheno_m1 + pheno_m2;
+			ind.setValue("phenotype", pheno);
+			fit = ind.getValue("fitness");
+			content_pheno = ind.index + "\t" + subpop.id + "\t" + pheno + "\t" + fit + "\n";
+			
+			writeFile(file_phenos, content_pheno, append = T);
+		}
+	}
+	
+	sim.treeSeqOutput('results/tree_seq/tree_seq_' + hash_value + '_' + file_suffix + '.trees');
+	print(hash_value);
+}
+
+function (void) save_local_adaptation(integer entrance_number) {
+	catn("Cycle: " + sim.cycle);
+	subpops = sim.subpopulations;
+	// Initialize variables to store population means and fitness matrices
+	all_opt = subpops.getValue("scaled_opt"); // cline
+	mean_phen = rep(0.0, entrance_number); // Mean phenotype for the single trait 
+	ninds = size(subpops.individuals); // Total number of individuals
+	
+	// Create an nsubpops x nsubpops matrix to store fitness comparisons across populations
+	fitness_matrix_pop = matrix(rep(0.0, entrance_number * entrance_number), nrow = entrance_number, ncol = entrance_number);
+	
+	// Loop through each subpopulation to evaluate fitness
+	for (source_index in seqAlong(subpops)) {
+		source_subpop = subpops[source_index];
+		inds = source_subpop.individuals;
+		phenotype = inds.getValue("genetic_value"); // Get phenotype values for the single trait
+		mean_phen[source_index] = mean(phenotype); // Calculate mean phenotype for the single trait
+		for (test_index in seqAlong(subpops)) {
+			
+			test_subpop = subpops[test_index];
+			opt = test_subpop.getValue("scaled_opt"); // Get the environmental optimum for the single trait
+			fitness_var = test_subpop.getValue("fitness_var"); // Get the normalization factor for fitness
+			
+			// Calculate fitness of individuals in the source population when tested in the test population's environment
+			//fitnesses = dnorm(asFloat(phenotype1), asFloat(opt1), final_sel_strength) / fitness_norm; // y trait
+			fitnesses = exp(-0.5 * ((phenotype - asFloat(opt))^2)/asFloat(fitness_var));
+			
+			// Store the average fitness in the fitness matrix
+			fitness_matrix_pop[test_index, source_index] = mean(fitnesses);
+		}
+	}
+	
+	//fitness_matrix_content = NULL;
+	
+	//for (i in 0:(subpop_number - 1)) {
+	//	line = paste(fitness_matrix_pop[i,0:(subpop_number - 1)], sep="\t"); // Convert each row to a tab-separated string
+	//	fitness_matrix_content = c(fitness_matrix_content, line);
+	//}
+	
+	// Write the matrix content to the file
+	//writeFile("fitnesses_" + sim.cycle + ".txt", fitness_matrix_content, append = F);
+	
+	
+	// Extract diagonal elements representing sympatric fitness
+	diagonals = rep(0.0, subpop_number);
+	for (i in seqAlong(diagonals)) {
+		diagonals[i] = fitness_matrix_pop[i, i]; // Sympatric fitness (fitness in native environment)
+	}
+	
+	// Calculate local adaptation metrics
+	sympatric = mean(diagonals); // Mean fitness in native environments
+	allopatric = (sum(fitness_matrix_pop) - sum(diagonals)) / (length(fitness_matrix_pop) - length(diagonals)); // Mean fitness in non-native environments
+	local_adapt = sympatric - allopatric; // Local adaptation
+	
+	// Calculate correlations between population means and environmental optima
+	//cor_temp_popmean = cor(all_opt1, mean_phen1); // Correlation between population mean phenotype and temperature optimum
+	
+	// Calculate correlations between individual phenotypes and environmental optima
+	all_inds_pheno = subpops.individuals.getValue("genetic_value");
+	all_inds_opt = subpops.individuals.subpopulation.getValue("scaled_opt");
+	cor_opt_pheno = cor(all_inds_pheno, all_inds_opt); // Correlation at the individual level
+	
+	// Combine all results into a single string for output
+	la_df = paste(sim.cycle, sympatric, allopatric, local_adapt, cor_opt_pheno);
+	
+	// Output results to the _LA.txt file
+	catn(sim.cycle + ":" + sympatric + " " + allopatric + " " + local_adapt + " " + cor_opt_pheno);
+	writeFile("results/local_adaptation/local_adapt_" + hash_value + ".txt", la_df, append=T);
+
+}
+
 function (void) calculateFitness(void) {
-	
-	if (sim.cycle < BURNIN_2) {
-		progress = (sim.cycle - BURNIN_1) / (BURNIN_2 - BURNIN_1);
-		optima = optima_final * progress;
-		fitness_var = final_sel_strength * progress + initial_sel_strength * (1.0 - progress);
-	} else {
-		optima = optima_final;
-		fitness_var = final_sel_strength;
-	}
-	
-	for (i in 1:subpop_number) {
+	if (sim.cycle < COMMON_GARDEN_CYCLE) {
 		
-		subpop = sim.subpopulations[i - 1];
-		if (subpop.individualCount > 0) {
-			opt = optima[i - 1];
-			subpop.setValue("scaled_opt", opt);
-			//fitness_norm = dnorm(0.0, 0.0, fitness_var);
-			subpop.setValue("fitness_var", fitness_var);
+		if (sim.cycle < BURNIN_2) {
+			progress = (sim.cycle - BURNIN_1) / (BURNIN_2 - BURNIN_1);
+			optima = optima_final * progress;
+			fitness_var = final_sel_strength * progress + initial_sel_strength * (1.0 - progress);
+		} else {
+			optima = optima_final;
+			fitness_var = final_sel_strength;
+		}
+		
+		for (i in 1:subpop_number) {
 			
-			for (ind in subpop.individuals) {
-				// Get mutations of type m1
-				muts_m1 = ind.genomes.mutationsOfType(m1);
+			subpop = sim.subpopulations[i - 1];
+			if (subpop.individualCount > 0) {
+				opt = optima[i - 1];
+				subpop.setValue("scaled_opt", opt);
+				subpop.setValue("fitness_var", fitness_var);
 				
-				// Get mutations of type m2
-				muts_m2 = ind.genomes.mutationsOfType(m2);
+				for (ind in subpop.individuals) {
+					// Get mutations of type m1
+					muts_m1 = ind.genomes.mutationsOfType(m1);
+					
+					// Get mutations of type m2
+					muts_m2 = ind.genomes.mutationsOfType(m2);
+					
+					// Calculate the phenotype based on the sum of effects from both mutation types
+					genetic_value_m1 = size(muts_m1) ? sum(muts_m1.getValue("e1")) else 0.0;
+					genetic_value_m2 = size(muts_m2) ? sum(muts_m2.getValue("e1")) else 0.0;
+					
+					// Combine the effects to calculate the overall phenotype
+					genetic_value = genetic_value_m1 + genetic_value_m2;
+					
+					// Set the phenotype for the individual
+					ind.setValue("genetic_value", genetic_value);
+				}
 				
-				// Calculate the phenotype based on the sum of effects from both mutation types
-				genetic_value_m1 = size(muts_m1) ? sum(muts_m1.getValue("e1")) else 0.0;
-				genetic_value_m2 = size(muts_m2) ? sum(muts_m2.getValue("e1")) else 0.0;
+				inds = subpop.individuals;
+				genetic_values = inds.getValue("genetic_value");
 				
-				// Combine the effects to calculate the overall phenotype
-				genetic_value = genetic_value_m1 + genetic_value_m2;
+				// Add environmental noise
+				env_noise = rnorm(size(inds), 0.0, sqrt(VE_constant));
+				phenotypes = genetic_values + env_noise;
 				
-				// Set the phenotype for the individual
-				ind.setValue("genetic_value", genetic_value);
+				// Calculate fitness
+				fitness = exp(-0.5 * ((phenotypes - asFloat(opt))^2) / asFloat(fitness_var));
+				inds.fitnessScaling = fitness;
+				
+				for (j in seqAlong(inds)) {
+					inds[j].setValue("fitness", fitness[j]);
+				}
 			}
-			
-			inds = subpop.individuals;
-			genetic_values = inds.getValue("genetic_value");
-			
-			// save it for this tick 
-			env_noise = rnorm(size(inds), 0.0, sqrt(VE_constant));
-			//calculate phenotype
-			phenotypes = genetic_values + env_noise;
-			
-			//calculate fitness 
-			fitness = exp(-0.5 * ((phenotypes - asFloat(opt))^2)/asFloat(fitness_var));
-			
-			//fitness = dnorm(asFloat(phenotypes), asFloat(opt), fitness_var) / fitness_norm;
-			inds.fitnessScaling = fitness;
-			
-			for (j in seqAlong(inds)) {
-				inds[j].setValue("fitness", fitness[j]);
+		}
+	} else {
+		/// common garden fitnesss /////
+		print('common garden fitness started');
+		optima = optima_CG;
+		print(optima_CG);
+		fitness_var = sel_strength_CG;
+		print(sel_strength_CG);
+		for (i in 1:common_garden_number) {
+			print(i);
+			subpop = sim.subpopulations[i - 1];
+			print(subpop);
+			if (subpop.individualCount > 0) {
+				opt = optima[i - 1];
+				subpop.setValue("scaled_opt", opt);
+				subpop.setValue("fitness_var", fitness_var);
+				
+				for (ind in subpop.individuals) {
+					// Get mutations of type m1
+					muts_m1 = ind.genomes.mutationsOfType(m1);
+					
+					// Get mutations of type m2
+					muts_m2 = ind.genomes.mutationsOfType(m2);
+					
+					// Calculate the phenotype based on the sum of effects from both mutation types
+					genetic_value_m1 = size(muts_m1) ? sum(muts_m1.getValue("e1")) else 0.0;
+					genetic_value_m2 = size(muts_m2) ? sum(muts_m2.getValue("e1")) else 0.0;
+					
+					// Combine the effects to calculate the overall phenotype
+					genetic_value = genetic_value_m1 + genetic_value_m2;
+					
+					// Set the phenotype for the individual
+					ind.setValue("genetic_value", genetic_value);
+				}
+				
+				inds = subpop.individuals;
+				genetic_values = inds.getValue("genetic_value");
+				
+				// Add environmental noise
+				env_noise = rnorm(size(inds), 0.0, sqrt(VE_constant));
+				phenotypes = genetic_values + env_noise;
+				
+				// Calculate fitness
+				fitness = exp(-0.5 * ((phenotypes - asFloat(opt))^2) / asFloat(fitness_var));
+				inds.fitnessScaling = fitness;
+				
+				for (j in seqAlong(inds)) {
+					inds[j].setValue("fitness", fitness[j]);
+				}
 			}
 		}
 	}
 }
 
 
-2: early() {
+1: early() {
+	// before calculating fitness for this population, kill the 'parents' after the repduction stage
+	inds = sim.subpopulations.individuals;
+	sim.killIndividuals(inds[inds.age > 0]);
 	calculateFitness();
-	migration();
-}
-
-
-
-2: reproduction() {
-	if (repr_scheme == 'selfing'){
-		for (subpopulation in sim.subpopulations) {
-			if (subpopulation.individualCount > 0) {
-				for (ind in subpopulation.individuals) {
-					offspring = rpois(1, 7.247);
-					for (i in 1:offspring) {
-						if (runif(1) < 0.97) {
-							subpopulation.addSelfed(ind);
-						} else {
-							mate = subpopulation.sampleIndividuals(1);
-							subpopulation.addCrossed(ind, mate);
-						}
-					}
-				}
-			}
-		}
-		self.active = 0;
-	}
-	if (repr_scheme == 'outcrossing'){
-		for (subpopulation in sim.subpopulations) {
-			if (subpopulation.individualCount > 0) {
-				for (ind in subpopulation.individuals) {
-					offspring = rpois(1, 7.247);
-					for (i in 1:offspring) {
-						if (runif(1) > 0.97) {
-							subpopulation.addSelfed(ind);
-						} else {
-							mate = subpopulation.sampleIndividuals(1);
-							subpopulation.addCrossed(ind, mate);
-						}
-					}
-				}
-			}
-		}
-		self.active = 0;
+	if (sim.cycle < COMMON_GARDEN_CYCLE) {
+		migration();
 	}
 }
 
 
-2: late() {
+1: reproduction() {
+	// Set the probability threshold based on the reproduction scheme
+	prob_self = (repr_scheme == 'selfing')? 0.97 else 0.03;
+	for (subpopulation in sim.subpopulations) {
+		if (subpopulation.individualCount > 0) {
+			for (ind in subpopulation.individuals) {
+				offspring = rpois(1, 7.247);
+				for (i in 1:offspring) {
+					if (runif(1) < prob_self) {
+						subpopulation.addSelfed(ind);
+					} else {
+						mate = subpopulation.sampleIndividuals(1);
+						subpopulation.addCrossed(ind, mate);
+					}
+				}
+			}
+		}
+	}
+	self.active = 0;
+}
+
+
+1: late() {
+	// kill individuals based on capacity charge
 	for (subpop in sim.subpopulations) {
 		if (subpop.individualCount > capacity_charge) {
 			number_to_kill = subpop.individualCount - capacity_charge;
 			inds_to_kill = subpop.sampleIndividuals(number_to_kill);
 			sim.killIndividuals(inds_to_kill);
-			//sim.outputMutations(sim.mutationsOfType(m1));
-		
 		}
 	}
 }
 
 
-
-
 1: late() {
-	if (sim.cycle == last_gen) {
-		print('hola');
+	// if its time to set up the common garden, save the data and set up the common garden 
+	if (sim.cycle == COMMON_GARDEN_CYCLE) {
+		// bcg: before common garden
+		saveData("bcg");
+		// and then we start the common garden 	
 		
-		// Generate a hash_value for unique file names
+		///// start of the common garden /////////////////////////////////////////////////////////////////////
+
+		cg_pop_start = subpop_number+1;
+		cg_pop_end = subpop_number + common_garden_number;
 		
-		file_phenos = 'results/phenotypes/phenotypes_' + hash_value + ".txt";
-		//file_muts = og_path + hash_value + "_output_mutations.txt";
-		
-		// Iterate over all individuals in all subpopulations
-		for (subpop in sim.subpopulations) {
-			for (ind in subpop.individuals) {
-				// Output the phenotypes of the individuals
-				// Get mutations of type m1
-				muts_m1 = ind.genomes.mutationsOfType(m1);
-				
-				// Get mutations of type m2
-				muts_m2 = ind.genomes.mutationsOfType(m2);
-				
-				// Calculate the phenotype based on the sum of effects from both mutation types
-				pheno_m1 = size(muts_m1) ? sum(muts_m1.getValue("e1")) else 0.0;
-				pheno_m2 = size(muts_m2) ? sum(muts_m2.getValue("e1")) else 0.0;
-				
-				// Combine the effects to calculate the overall phenotype
-				pheno = pheno_m1 + pheno_m2;
-				
-				// Set the phenotype for the individual
-				ind.setValue("phenotype", pheno);
-				fit = ind.getValue("fitness");
-				content_pheno = ind.index + "\t" + subpop.id + "\t" + pheno + "\t" + fit + "\n";
-				
-				writeFile(file_phenos, content_pheno, append = T);
-				//print(file_phenos);
-				//for (mut in muts) {
-				//	effect = mut.getValue("e1");
-				//	content_muts = mut.id + "\t" + effect + "\n";
-				//	writeFile(file_muts, content_muts, append = T);
-				//}
-			}
+		for (i in cg_pop_start:cg_pop_end) {
+			sim.addSubpop("p" + i, 0);
 		}
 		
-		// Output mutations and tree sequence
-		//sim.outputMutations(sim.mutationsOfType(m1), filePath=og_path + hash_value + "_mutations1.txt", append = F);
-		//sim.outputMutations(sim.mutationsOfType(m2), filePath=og_path + hash_value + "_mutations2.txt", append = F);
-		
-		sim.treeSeqOutput('results/tree_seq/tree_seq_' + hash_value + ".trees");
-		print(hash_value);
-		//sim.outputMutations();
-		// End the simulation
+		// Move individuals to the common gardens
+		cg_index_start = cg_pop_start -1;
+		cg_index_end = cg_pop_end -1;
+		for (i in cg_index_start:cg_index_end) {
+			subpop = sim.subpopulations[i];
+			for (j in 1:subpop_number){
+				subpop.takeMigrants(sim.subpopulations[j-1].sampleIndividuals(common_garden_migrants));
+			}
+		}
+		// Remove the initial subpopulations
+		for (i in 1:17) {
+			sim.subpopulations[0].removeSubpopulation();
+		}
+	
+	}
+	
+	///// start of the common garden /////////////////////////////////////////////////////////////////////
+	
+	
+	else if (sim.cycle == last_gen_a_cg) {
+		// save the data acg: after the common garden 
+		saveData("acg");
 		sim.simulationFinished();
 	}
 }
 
 
-// Calculate local adaptation every 100 generations
-// output every 10 gen 
+// Calculate local adaptation every 10 generations
 1: late() {
-	if (sim.cycle % 10 == 0) {
-		catn("Cycle: " + sim.cycle);
-		subpops = sim.subpopulations;
-		// Initialize variables to store population means and fitness matrices
-		all_opt1 = subpops.getValue("scaled_opt"); // cline
-		print(all_opt1);
-		mean_phen1 = rep(0.0, subpop_number); // Mean phenotype for the single trait 
-		ninds = size(subpops.individuals); // Total number of individuals
-		
-		// Create an nsubpops x nsubpops matrix to store fitness comparisons across populations
-		fitness_matrix_pop = matrix(rep(0.0, subpop_number * subpop_number), nrow = subpop_number, ncol = subpop_number);
-		
-		// Loop through each subpopulation to evaluate fitness
-		for (source_index in seqAlong(subpops)) {
-			source_subpop = subpops[source_index];
-			inds = source_subpop.individuals;
-			phenotype1 = inds.getValue("genetic_value"); // Get phenotype values for the single trait
-			mean_phen1[source_index] = mean(phenotype1); // Calculate mean phenotype for the single trait
-			
-			for (test_index in seqAlong(subpops)) {
-				test_subpop = subpops[test_index];
-				opt1 = test_subpop.getValue("scaled_opt"); // Get the environmental optimum for the single trait
-				fitness_var = test_subpop.getValue("fitness_var"); // Get the normalization factor for fitness
-				
-				// Calculate fitness of individuals in the source population when tested in the test population's environment
-				//fitnesses = dnorm(asFloat(phenotype1), asFloat(opt1), final_sel_strength) / fitness_norm; // y trait
-				fitnesses = exp(-0.5 * ((phenotype1 - asFloat(opt1))^2)/asFloat(fitness_var));
-
-				// Store the average fitness in the fitness matrix
-				fitness_matrix_pop[test_index, source_index] = mean(fitnesses);
-			}
+	if (sim.cycle < COMMON_GARDEN_CYCLE) {
+		if (sim.cycle % 10 == 0) {
+			save_local_adaptation(subpop_number);
 		}
-		
-		
-		//print(fitness_matrix_pop);
-		
-		//fitness_matrix_content = NULL;
-
-		//for (i in 0:(subpop_number - 1)) {
-		//	line = paste(fitness_matrix_pop[i,0:(subpop_number - 1)], sep="\t"); // Convert each row to a tab-separated string
-		//	fitness_matrix_content = c(fitness_matrix_content, line);
-		//}
-		
-		// Write the matrix content to the file
-		//writeFile("fitnesses_" + sim.cycle + ".txt", fitness_matrix_content, append = F);
-		
-		
-		// Extract diagonal elements representing sympatric fitness
-		diagonals = rep(0.0, subpop_number);
-		for (i in seqAlong(diagonals)) {
-			diagonals[i] = fitness_matrix_pop[i, i]; // Sympatric fitness (fitness in native environment)
-		}
-		
-		// Calculate local adaptation metrics
-		sympatric = mean(diagonals); // Mean fitness in native environments
-		allopatric = (sum(fitness_matrix_pop) - sum(diagonals)) / (length(fitness_matrix_pop) - length(diagonals)); // Mean fitness in non-native environments
-		local_adapt = sympatric - allopatric; // Local adaptation
-		
-		// Calculate correlations between population means and environmental optima
-		//cor_temp_popmean = cor(all_opt1, mean_phen1); // Correlation between population mean phenotype and temperature optimum
-		
-		// Calculate correlations between individual phenotypes and environmental optima
-		all_inds_pheno = subpops.individuals.getValue("genetic_value");
-		all_inds_opt = subpops.individuals.subpopulation.getValue("scaled_opt");
-		cor_opt_pheno = cor(all_inds_pheno, all_inds_opt); // Correlation at the individual level
-		
-		// Combine all results into a single string for output
-		LA = paste(sim.cycle, sympatric, allopatric, local_adapt, cor_opt_pheno);
-		
-		// Output results to the _LA.txt file
-		catn(sim.cycle + ":" + sympatric + " " + allopatric + " " + local_adapt + " " + cor_opt_pheno);
-		writeFile("results/local_adaptation/local_adapt_" + hash_value + ".txt", LA, append=T);
-	
+	}
+	else if (sim.cycle == COMMON_GARDEN_CYCLE) {
+		la_df = paste(sim.cycle, 'gcs', 'gcs', 'gcs', 'gcs');
+		writeFile("results/local_adaptation/local_adapt_" + hash_value + ".txt", la_df , append=T);
+	}
+	else if (sim.cycle > COMMON_GARDEN_CYCLE) {
+		save_local_adaptation(common_garden_number);
 	}
 }
 
-
-
 10000 late(){}
+
+
 //}
 
 /*
@@ -623,3 +686,17 @@ function (void) checkGenotypes(void) {
 		}
 	}
 }
+
+
+				//print(file_phenos);
+				//for (mut in muts) {
+				//	effect = mut.getValue("e1");
+				//	content_muts = mut.id + "\t" + effect + "\n";
+				//	writeFile(file_muts, content_muts, append = T);
+				//}
+			}
+		}
+		
+		// Output mutations and tree sequence
+		//sim.outputMutations(sim.mutationsOfType(m1), filePath=og_path + hash_value + "_mutations1.txt", append = F);
+		//sim.outputMutations(sim.mutationsOfType(m2), filePath=og_path + hash_value + "_mutations2.txt", append = F);

@@ -27,9 +27,16 @@ with open(parameter_space, 'r') as f:
     parameters = json.load(f)
 
 initial_ne = parameters['initial_ne']
-migration_rate = parameters['migration_rate']
-mutrate = parameters['mutrate']
 
+## if the tree is after the common garden then there is no migration
+if 'acg' in tree_seq_file:
+    migration_rate = 0
+elif 'bcg' in tree_seq_file:
+    migration_rate = parameters['migration_rate']
+
+print('migration rate is:', migration_rate)
+
+mutrate = parameters['mutrate']
 output_slim_tree = tskit.load(tree_seq_file)
 
 ## create demography 
