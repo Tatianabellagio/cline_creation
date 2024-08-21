@@ -29,12 +29,6 @@ initialize() {
 	if (!exists("capacity_charge"))defineConstant('capacity_charge', 500);
 	if (!exists("initial_pop_size"))defineConstant('initial_pop_size', 1000);
 	
-	
-	
-	// number of subpopulations and ergo optima vector 
-	if (!exists("optima_vector"))defineConstant('optima_vector', seq(-2, 2, by = 0.25));
-	
-	defineConstant('optima_final',optima_vector);
 	if (!exists("subpop_number"))defineConstant('subpop_number', 17);
 	
 	// Define migration between adjacent subpopulations
@@ -44,7 +38,10 @@ initialize() {
 	// Burn-in period 2 (transition) var of original env will start the shrink
 	if (!exists("BURNIN_2"))defineConstant('BURNIN_2', 50); // final selection strength 
 	if (!exists("COMMON_GARDEN_CYCLE"))defineConstant('COMMON_GARDEN_CYCLE', 100);
-	if (!exists("last_gen_a_cg"))defineConstant('last_gen_a_cg', 103); // last gen of common garden 
+	if (!exists("cg_duration"))defineConstant('cg_duration', 103); // last gen of common garden 
+	
+	total = COMMON_GARDEN_CYCLE + cg_duration;
+	defineConstant('last_gen_a_cg', total);
 
 	if (!exists("common_garden_number"))defineConstant('common_garden_number', 17);
 	if (!exists("common_garden_migrants"))defineConstant('common_garden_migrants', 10);
@@ -57,17 +54,27 @@ initialize() {
 	print(COMMON_GARDEN_CYCLE);
 	print('last_gen_a_cg');
 	print(last_gen_a_cg);
-	
-	if (!exists("optima_CG"))defineConstant('optima_CG', seq(-2, 2, by = 0.25));
-	if (!exists("sel_strength_CG"))defineConstant('sel_strength_CG', 0.5);
-	
-	
-	
-	
-	
+
 	if (!exists("initial_sel_strength"))defineConstant('initial_sel_strength', 10); // orgiinal strength of selection 
 	if (!exists("final_sel_strength"))defineConstant('final_sel_strength', 0.5); // final selection strength 
 	
+    // define optima vectors
+    file = readFile("env_var_acg.txt");
+    optima_CGv = asFloat(file);  // if it's a single numeric value
+    // optima_CG = asFloatVector(strsplit(file[0], ","));
+    defineConstant("optima_CG", optima_CGv);
+    print(optima_CG);
+    
+    file = readFile("env_var_bcg.txt");
+    optima_vectorv = asFloat(file);  // if it's a single numeric value
+    // optima_CG = asFloatVector(strsplit(file[0], ","));
+    defineConstant("optima_final", optima_vectorv);
+    print(optima_CG);
+
+	if (!exists("sel_strength_CG"))defineConstant('sel_strength_CG', final_sel_strength);
+	print(sel_strength_CG);
+	print(final_sel_strength);
+
 	initializeSLiMModelType("nonWF");
 	
 	// Mutation and genome initialization
