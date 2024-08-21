@@ -25,7 +25,7 @@ final_sel_strength=$(jq -r '.final_sel_strength' "$parameter_space")
 ##common garden set up
 common_garden_number=$(jq -r '.common_garden_number' "$parameter_space")
 common_garden_migrants=$(jq -r '.common_garden_migrants' "$parameter_space")
-sel_strength_CG=$(jq -r '.sel_strength_CG' "$parameter_space")
+#sel_strength_CG=$(jq -r '.sel_strength_CG' "$parameter_space")
 COMMON_GARDEN_CYCLE=$(jq -r '.COMMON_GARDEN_CYCLE' "$parameter_space")
 
 
@@ -48,8 +48,8 @@ slim \
     -d "final_sel_strength=$final_sel_strength" \
     -d "common_garden_number=$common_garden_number" \
     -d "common_garden_migrants=$common_garden_migrants" \
-    -d "sel_strength_CG=$sel_strength_CG" \
     -d "COMMON_GARDEN_CYCLE=$COMMON_GARDEN_CYCLE" \
     scripts/cline_creation.slim
 
 
+    #-d "sel_strength_CG=$sel_strength_CG" \
