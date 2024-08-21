@@ -1,8 +1,8 @@
 #!/usr/local/bin/bash
  
 ## This script requires jq to be installed to read JSON files
-
 ## Get the hash value
+
 hash_value="${snakemake_params[hash]}"
 echo $hash_value
 parameter_space="${snakemake_input[parameter_space]}"

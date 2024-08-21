@@ -44,14 +44,23 @@ initialize() {
 	// Burn-in period 2 (transition) var of original env will start the shrink
 	if (!exists("BURNIN_2"))defineConstant('BURNIN_2', 50); // final selection strength 
 	if (!exists("COMMON_GARDEN_CYCLE"))defineConstant('COMMON_GARDEN_CYCLE', 100);
+	if (!exists("last_gen_a_cg"))defineConstant('last_gen_a_cg', 103); // last gen of common garden 
+
 	if (!exists("common_garden_number"))defineConstant('common_garden_number', 17);
 	if (!exists("common_garden_migrants"))defineConstant('common_garden_migrants', 10);
 	
+	print('BURNIN_1');	
+	print(BURNIN_1);
+	print('BURNIN_2');
+	print(BURNIN_2);
+	print('COMMON_GARDEN_CYCLE');
+	print(COMMON_GARDEN_CYCLE);
+	print('last_gen_a_cg');
+	print(last_gen_a_cg);
 	
 	if (!exists("optima_CG"))defineConstant('optima_CG', seq(-2, 2, by = 0.25));
 	if (!exists("sel_strength_CG"))defineConstant('sel_strength_CG', 0.5);
 	
-	if (!exists("last_gen_a_cg"))defineConstant('last_gen_a_cg', 103); // last gen of common garden 
 	
 	
 	
