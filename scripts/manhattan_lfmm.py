@@ -26,8 +26,19 @@ threshold_value = 0.05 / len(p_values)
 p_values['chrom'] =1 
 
 sign_pos = p_values[p_values['pvalue'] < threshold_value]
-
 sign_pos.to_csv(sign_pos_df,index=None)
+
+## here someitmes the p values might be 0 so i will replace it by the lowest pvalue or he treshold for visual purposes 
+if (p_values['pvalue'] == 0).any():
+
+    lowerst_pvalue = p_values['pvalue'].min()   
+
+    if lowerst_pvalue < threshold_value:
+        lowest_value = lowerst_pvalue
+    elif lowerst_pvalue > threshold_value:
+        lowest_value = threshold_value
+
+    p_values[p_values['pvalue'] == 0, 'pvalue'] = lowest_value
 
 df = p_values.copy()
 
