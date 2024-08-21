@@ -59,6 +59,7 @@ rule run_simulations:
     output:
         tree_seq="results/tree_seq/tree_seq_{hash}.trees",
         phenotypes="results/phenotypes/phenotypes_{hash}.txt",
+        local_adaptation="results/local_adaptation/local_adapt_{hash}.txt",
     params:
         hash=lambda wildcards: wildcards.hash,
     resources:
