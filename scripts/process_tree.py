@@ -178,10 +178,73 @@ genetic_diversity = nts.diversity()
 with open(genetic_diversity_file, 'w') as file:
     file.write(str(genetic_diversity))
 
+##### check 
+for causal_locus in causal_loci:
+    print(causal_locus)
+   # Get the sites table
+    sites_table = nts.tables.sites
+
+    # Find the index of the site at the causal position
+    index_causal_pos = None
+    for index, site in enumerate(sites_table):
+        if site.position == causal_locus:
+            index_causal_pos = index
+            print(f"Position: {site.position}, Ancestral State: {site.ancestral_state}")
+            break
+
+    if index_causal_pos is None:
+        raise ValueError(f"Site at position {causal_locus} not found.")
+
+    # Get the derived states at the causal position
+    derived_states = []
+    mutations_table = nts.tables.mutations
+    for mut in mutations_table:
+        if mut.site == index_causal_pos:
+            derived_states.append(mut.derived_state)
+    print(pd.Series(derived_states).unique())
+
+    # Check if all derived states are the same
+    all_same = (pd.Series(derived_states) == derived_states[0]).all()
+    if all_same:
+        print("All derived states are the same.")
+    else:
+        print("Derived states are not the same.")
+
+
+    if (site.ancestral_state in derived_states) == False:
+        print('derived state not in ancestral state')
+    elif (site.ancestral_state in derived_states) == True:
+        print('derived state in ancestral state')
+
+
+######## check 
+
+
+# Identify multiallelic sites
+multiallelic_sites = set()
+
+for site in nts.sites():
+    alleles = set()
+    for mutation in site.mutations:
+        alleles.add(mutation.derived_state)
+
+    if len(alleles) > 2:  # Multiallelic site
+        print(site)
+        multiallelic_sites.add(site.id)
+
+# Filter out the multiallelic sites
+def site_is_biallelic(site):
+    return site.id not in multiallelic_sites
+
+filtered_ts = nts.delete_sites(
+    [site.id for site in nts.sites() if site.id in multiallelic_sites]
+)
+
+
 # Write the filtered tree sequence to a VCF file
 with open(vcf_file, 'w') as file:
     # Pass the file object as the output parameter
-    nts.write_vcf(output=file, allow_position_zero = True)
+    filtered_ts.write_vcf(output=file, allow_position_zero = True)
 
 
 population_counts = {pop.id: 0 for pop in nts.populations()}
