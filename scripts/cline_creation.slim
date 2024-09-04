@@ -5,7 +5,7 @@ initialize() {
 	setSeed(1455193095666); // Uncomment this line if you want reproducible results
 	// Constants
 	
-	if (!exists("hash_value"))defineConstant('hash_value', "f6910f18"); // where output will be stored 
+	if (!exists("hash_value"))defineConstant('hash_value', "0c14e067"); // where output will be stored 
 	print(hash_value);
 	//for selfing/outcrossing 	
 	if (!exists("repr_scheme"))defineConstant('repr_scheme', "selfing"); // where output will be stored 
@@ -145,7 +145,7 @@ initialize() {
 	}
 	
 	initializeRecombinationRate(rates, ends);
-	initializeTreeSeq(retainCoalescentOnly=F);
+	initializeTreeSeq(retainCoalescentOnly=T, timeUnit = "generations");
 
 }
 
@@ -153,7 +153,7 @@ initialize() {
 	sim.addSubpop("p0", initial_pop_size);
 	target = p0.genomes[0];
 	num_active_loci = size(active_loci);
-	print(active_loci);
+	//print(active_loci);
 	// Create and define MUT1
 	target.addNewDrawnMutation(m1, active_loci);
 	target.mutations.setValue("e1", effect_size_mut1);
@@ -331,9 +331,9 @@ function (void) save_local_adaptation(void) {
 	for (source_index in seqAlong(subpops)) {
 		
 		source_subpop = subpops[source_index];
-		print(source_subpop);
+		//print(source_subpop);
 		inds = source_subpop.individuals;
-		print(size(inds));
+		//print(size(inds));
 		
 		if (size(inds) == 0) {
 			// Skip this subpopulation if there are no individuals
@@ -578,11 +578,25 @@ function (void) calculateFitness(void) {
 		for (i in 1:17) {
 			sim.subpopulations[0].removeSubpopulation();
 		}
-	
+		print('startingthe common garde');
+		print(sum(sim.subpopulations.individualCount));
+		//start recording individuals 
+		sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+		//cycle_acg = sim.cycle + "acg";
+		//saveData(cycle_acg);
 	}
 	
 	///// start of the common garden /////////////////////////////////////////////////////////////////////
 	
+	// save data at each common garden cycle 
+	if (sim.cycle > COMMON_GARDEN_CYCLE & sim.cycle < last_gen_a_cg) {
+		print(sum(sim.subpopulations.individualCount));
+		//start recording individuals  
+		sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
+		//cycle_acg = sim.cycle + "acg";
+		//print(cycle_acg);
+		//saveData(cycle_acg);
+	}
 	
 	else if (sim.cycle == last_gen_a_cg) {
 		// save the data acg: after the common garden 

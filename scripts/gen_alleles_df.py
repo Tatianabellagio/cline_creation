@@ -95,7 +95,7 @@ all_alt_allele_count.index = all_alt_allele_count.index.map(og_positions_dict)
 all_alt_allele_freq.index = all_alt_allele_freq.index.map(og_positions_dict)
 
 all_alt_allele_count.to_csv(allele_counts_df_file)
-all_alt_allele_count.to_csv(allele_freq_df_file)
+all_alt_allele_freq.to_csv(allele_freq_df_file)
 
 
 ## for lfmmm

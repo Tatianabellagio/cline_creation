@@ -16,9 +16,11 @@ causal_loci_file = snakemake.input['causal_loci_file']
 hash = snakemake.params['hash']
 
 #outputs
-vcf_file = snakemake.output["vcf_file"]
-population_counts_file = snakemake.output["population_counts_file"]
-genetic_diversity_file = snakemake.output["genetic_diversity_file"]
+vcf_file = snakemake.output["vcf_files"]
+population_counts_file = snakemake.output["population_counts_files"]
+genetic_diversity_file = snakemake.output["genetic_diversity_files"]
+
+print(vcf_file)
 
 # read the causal loci 
 causal_loci = pd.read_csv(causal_loci_file,header=None)[0].values
@@ -172,12 +174,6 @@ tables.sites.replace_with(new_sites_table)
 # Now you can save the modified tree sequence
 nts = tables.tree_sequence()
 
-## calculate diversity and save it 
-genetic_diversity = nts.diversity()
-
-with open(genetic_diversity_file, 'w') as file:
-    file.write(str(genetic_diversity))
-
 ##### check 
 for causal_locus in causal_loci:
     print(causal_locus)
@@ -216,35 +212,16 @@ for causal_locus in causal_loci:
     elif (site.ancestral_state in derived_states) == True:
         print('derived state in ancestral state')
 
+## calculate diversity and save it 
+genetic_diversity = nts.diversity()
 
-######## check 
-
-
-# Identify multiallelic sites
-multiallelic_sites = set()
-
-for site in nts.sites():
-    alleles = set()
-    for mutation in site.mutations:
-        alleles.add(mutation.derived_state)
-
-    if len(alleles) > 2:  # Multiallelic site
-        print(site)
-        multiallelic_sites.add(site.id)
-
-# Filter out the multiallelic sites
-def site_is_biallelic(site):
-    return site.id not in multiallelic_sites
-
-filtered_ts = nts.delete_sites(
-    [site.id for site in nts.sites() if site.id in multiallelic_sites]
-)
-
+with open(genetic_diversity_file, 'w') as file:
+    file.write(str(genetic_diversity))
 
 # Write the filtered tree sequence to a VCF file
 with open(vcf_file, 'w') as file:
     # Pass the file object as the output parameter
-    filtered_ts.write_vcf(output=file, allow_position_zero = True)
+    nts.write_vcf(output=file, allow_position_zero = True)
 
 
 population_counts = {pop.id: 0 for pop in nts.populations()}
