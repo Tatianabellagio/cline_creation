@@ -1,19 +1,12 @@
-
-
-# Check if the package is already installed
-if (!requireNamespace("lfmm", quietly = TRUE)) {
-  # If the package is not installed, install it
-  library(devtools)
-  devtools::install_github("bcm-uga/lfmm")
-}
-
 library("lfmm")
 library("dplyr")
 library("qvalue")
 
+
+allele_freq_file = '/Users/tatiana/Documents/grenenet/simulations/test_slim/cline_creation/results/lfmm/delta_p_lfmm_f22a3c94_acg_gen3.csv' #.set_index('Unnamed: 0')
+env_var_file = "/Users/tatiana/Documents/grenenet/simulations/test_slim/cline_creation/results/lfmm/env_vars/env_var_f22a3c94_acg_delta_p_gen3.csv"
 # Access the inputs and outputs via snakemake
-allele_freq_file <- snakemake@input[["allele_freq_lfmm"]]
-env_var_file <- snakemake@input[["env_var_lfmm"]]
+
 k_value_file <- snakemake@output[["k_value_file"]]
 output_file <- snakemake@output[["lfmm_pvalues"]]
 

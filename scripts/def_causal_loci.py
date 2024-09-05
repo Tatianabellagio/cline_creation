@@ -10,7 +10,7 @@ with open(parameter_space, 'r') as f:
     parameters = json.load(f)
 
 number_of_causal_loci = parameters['causal_loci']
-
+genome_length = parameters['genome_length']
 
 min_distance = 2  # Minimum distance between loci if not it will create problems in slim 
 
