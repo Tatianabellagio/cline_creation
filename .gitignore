@@ -4,6 +4,9 @@ slurm-logs/
 ## hashes
 all_hashes.txt
 
+## the notebook where i generate the parameters or iwil cause problems
+gen_parameters_jsons.ipynb
+
 # logs snakemake #
 ########
 logs/
