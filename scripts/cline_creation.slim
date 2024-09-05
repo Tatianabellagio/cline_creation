@@ -5,7 +5,7 @@ initialize() {
 	setSeed(1455193095666); // Uncomment this line if you want reproducible results
 	// Constants
 	
-	if (!exists("hash_value"))defineConstant('hash_value', "1effbc20"); // where output will be stored 
+	if (!exists("hash_value"))defineConstant('hash_value', "512cad59"); // where output will be stored 
 	print(hash_value);
 	//for selfing/outcrossing 	
 	if (!exists("repr_scheme"))defineConstant('repr_scheme', "selfing"); // where output will be stored 
@@ -40,12 +40,12 @@ initialize() {
 	// Burn-in period 2 (transition) var of original env will start the shrink
 	if (!exists("BURNIN_2"))defineConstant('BURNIN_2', 50); // final selection strength 
 	if (!exists("COMMON_GARDEN_CYCLE"))defineConstant('COMMON_GARDEN_CYCLE', 50);
-	if (!exists("cg_duration"))defineConstant('cg_duration', 3); // last gen of common garden 
+	if (!exists("cg_duration"))defineConstant('cg_duration', 5); // last gen of common garden 
 	
 	total = COMMON_GARDEN_CYCLE + cg_duration;
 	defineConstant('last_gen_a_cg', total);
 	
-	if (!exists("common_garden_number"))defineConstant('common_garden_number', 19);
+	if (!exists("common_garden_number"))defineConstant('common_garden_number', 21);
 	if (!exists("common_garden_migrants"))defineConstant('common_garden_migrants', 10);
 	
 	print('BURNIN_1');
@@ -60,8 +60,9 @@ initialize() {
 	if (!exists("initial_sel_strength"))defineConstant('initial_sel_strength', 10); // orgiinal strength of selection 
 	if (!exists("final_sel_strength"))defineConstant('final_sel_strength', 0.1); // final selection strength 
 	
+	file_name_cg_o = "env_var_acg_" + common_garden_number + ".txt";
 	// define optima vectors
-	file = readFile("env_var_acg.txt");
+	file = readFile(file_name_cg_o);
 	optima_CGv = asFloat(file);  // if it's a single numeric value
 	// optima_CG = asFloatVector(strsplit(file[0], ","));
 	defineConstant("optima_CG", optima_CGv);
@@ -458,6 +459,7 @@ function (void) calculateFitness(void) {
 		/// common garden fitnesss /////
 		print('common garden fitness started');
 		optima = optima_CG;
+		print(optima_CG);
 		//print(optima_CG);
 		fitness_var = sel_strength_CG;
 		print(sel_strength_CG);
