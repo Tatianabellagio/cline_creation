@@ -1,6 +1,9 @@
 ## slurm logs
 slurm-logs/
 
+## hashes
+all_hashes.txt
+
 # logs snakemake #
 ########
 logs/
