@@ -10,8 +10,9 @@ with open(parameter_space, 'r') as f:
     parameters = json.load(f)
 
 number_of_causal_loci = parameters['causal_loci']
+genome_length = parameters['genome_length']
 
-causal_loci = [random.randint(0, 500000) for _ in range(number_of_causal_loci)]
+causal_loci = [random.randint(0, genome_length) for _ in range(number_of_causal_loci)]
 causal_loci.sort()
 
 with open(causal_loci_output, 'w') as f:

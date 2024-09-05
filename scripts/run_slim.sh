@@ -9,6 +9,7 @@ echo $parameter_space
 
 # Extract values from the JSON using jq
 repr_scheme=$(jq -r '.repr_scheme' "$parameter_space")
+genome_length=$(jq -r '.genome_length' "$parameter_space")
 mutrate=$(jq -r '.mutrate' "$parameter_space")
 recomb_rate=$(jq -r '.recomb_rate' "$parameter_space")
 h2=$(jq -r '.h2' "$parameter_space")
@@ -33,6 +34,7 @@ echo $hash_value
 # Run SLiM with the extracted parameters as floats
 slim \
     -d "hash_value='$hash_value'" \
+    -d "genome_length=$genome_length" \
     -d "repr_scheme='$repr_scheme'" \
     -d "mutrate=$mutrate" \
     -d "recomb_rate=$recomb_rate" \

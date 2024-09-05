@@ -2,6 +2,7 @@ import pandas as pd
 import pickle
 import allel 
 import numpy as np
+import json
 
 #inputs
 parameter_space = snakemake.input['parameter_space'] 
@@ -13,12 +14,15 @@ hash = snakemake.params['hash']
 input_snp_number_file = snakemake.output["input_snp_number_file"]
 allele_counts_df_file = snakemake.output["allele_counts_df"]
 allele_freq_df_file = snakemake.output["allele_freq_df"]
-allele_counts_lfmm = snakemake.output["allele_counts_lfmm"]
+allele_freq_lfmm = snakemake.output["allele_freq_lfmm"]
 env_var_lfmm = snakemake.output["env_var_lfmm"]
 left_pos_lfmm = snakemake.output["left_pos_lfmm"]
 
+# Open and read the JSON file
+with open(parameter_space, 'r') as f:
+    parameters = json.load(f)
 
-
+common_garden_number = parameters['common_garden_number']
 
 vcf = allel.read_vcf(vcf_file)
 samples = vcf['samples']
@@ -103,30 +107,37 @@ total_genomes = geno_array.shape[1]*2
 min_freq = 0.05
 min_count = total_genomes * min_freq
 
-print(all_alt_allele_count.shape)
-all_alt_allele_count = all_alt_allele_count[all_alt_allele_count.sum(axis=1) > min_count]
+print(all_alt_allele_freq.shape)
+all_alt_allele_freq = all_alt_allele_freq[all_alt_allele_count.sum(axis=1) > min_count]
 
-allele_numb_after_filt = len(all_alt_allele_count)
+allele_numb_after_filt = len(all_alt_allele_freq)
 
 with open(input_snp_number_file, 'w') as file:
     file.write(f"{initial_allele_numb}\n")
     file.write(f"{allele_numb_nomultiple_derived_alleles}\n")
     file.write(f"{allele_numb_after_filt}\n")
 
-all_alt_allele_count.to_csv(allele_counts_lfmm, index=None)
+all_alt_allele_freq.to_csv(allele_freq_lfmm, index=None)
 
 # read teh sequence of envrionemnts 
 if 'acg' in vcf_file:
-    env_var = pd.read_csv('env_var_acg.txt', header=None)[0]
+    env_var = pd.read_csv(f'env_var_acg_{common_garden_number}.txt', header=None)[0]
+    range_start = len(env_var) - 1
+    range_ends = range_start + len(env_var)
+    pop_initial = [f'pop{i}' for i in range(range_start, range_ends)]
+
 elif 'bcg' in vcf_file:
     env_var = pd.read_csv('env_var_bcg.txt', header=None)[0]
+    range_ends = len(env_var) + 1
+    pop_initial = [f'pop{i}' for i in range(1, range_ends)]
+    
 
 # Create the dictionary
-pop_env = {key: value for key, value in zip(subpops.keys(), env_var)}
-env_var = pd.Series(list(all_alt_allele_count.columns.map(pop_env)))
+pop_env = {key: value for key, value in zip(pop_initial, env_var)}
+env_var = pd.Series(list(all_alt_allele_freq.columns.map(pop_env)))
 env_var.to_csv(env_var_lfmm,index=None, header=None)
 
-left_pos = all_alt_allele_count.index
+left_pos = all_alt_allele_freq.index
 left_pos = pd.Series(left_pos).reset_index()
 left_pos.columns = ['ignore', 'chrom_pos_left']
 

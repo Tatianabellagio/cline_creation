@@ -213,6 +213,10 @@ for causal_locus in causal_loci:
         print('derived state in ancestral state')
 
 
+## here be careful, if i iterate though nts.individuals() i will find the subpop origin of the individual
+## but i go thoug hthe metadata i will find where the individauls is actually at the moment
+#pop_id = ind.population
+
 ## save vcfs and pop counts for the different generations in the common garden 
 for vcf_file, population_counts_file, gens_ago in zip(vcf_files, population_counts_files, [3,2,1,0]):
 
@@ -220,10 +224,10 @@ for vcf_file, population_counts_file, gens_ago in zip(vcf_files, population_coun
 
     alive_individuals = pyslim.individuals_alive_at(nts, gens_ago)
     
-    for id, ind in enumerate(nts.individuals()):
+    for id, ind in enumerate(nts.tables.individuals):
         if id in alive_individuals:
             # Each individual has a population
-            pop_id = ind.population
+            pop_id = ind.metadata['subpopulation']
             population_counts[pop_id] += 1
 
     # Save the dictionary as a pickle file
