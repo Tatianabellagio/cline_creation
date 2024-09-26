@@ -5,6 +5,9 @@ slurm-logs/
 all_hashes.txt
 *.txt
 
+## out files
+*.out
+
 ## the notebook where i generate the parameters or iwil cause problems
 gen_parameters_jsons.ipynb
 *jsons.ipynb

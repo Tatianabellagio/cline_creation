@@ -122,7 +122,7 @@ all_alt_allele_freq.to_csv(allele_freq_lfmm, index=None)
 # read teh sequence of envrionemnts 
 if 'acg' in vcf_file:
     env_var = pd.read_csv(f'env_var_acg_{common_garden_number}.txt', header=None)[0]
-    range_start = len(env_var) - 1
+    range_start = 18
     range_ends = range_start + len(env_var)
     pop_initial = [f'pop{i}' for i in range(range_start, range_ends)]
 

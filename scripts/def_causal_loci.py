@@ -17,7 +17,7 @@ min_distance = 2  # Minimum distance between loci if not it will create problems
 # Generate causal loci ensuring they are not consecutive
 causal_loci = set()
 while len(causal_loci) < number_of_causal_loci:
-    new_locus = random.randint(0, genome_length)
+    new_locus = random.randint(0, genome_length-1)
     # Ensure the new locus doesn't violate the minimum distance rule
     if all(abs(new_locus - locus) >= min_distance for locus in causal_loci):
         causal_loci.add(new_locus)
